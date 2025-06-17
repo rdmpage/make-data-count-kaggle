@@ -49,7 +49,7 @@ function read_data($filename)
 					}
 				}
 			
-				//print_r($obj);	
+				print_r($obj);	
 				
 				if ($obj->dataset_id != "Missing")
 				{
@@ -75,16 +75,19 @@ $filename = 'train_labels.csv';
 
 $gold = read_data($filename);
 
-// print_r($gold);
+//print_r($gold);
 
 $filename = 'output.csv';
+$filename = 'submission.csv';
 
 $model = read_data($filename);
 
-// print_r($model);
+//print_r($model);
+
+
 
 $mode = 0; // just include dataset id
-//$mode = 1; // dataset id and mode of citation
+$mode = 1; // dataset id and mode of citation
 
 $g = array();
 $m = array();

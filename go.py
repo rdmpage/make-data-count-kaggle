@@ -2,6 +2,7 @@ import os
 import re
 import json
 from lxml import etree
+import csv
 
 # Define input and output directories
 xml_folder = 'training-xml-extra'
@@ -57,16 +58,18 @@ for filename in os.listdir(xml_folder):
         # Create JSON document
         json_data = {
            'id' : filename.replace('.xml', ''),
+           'source_xml_type' : xml_format,
            'title' : None,
            'doi' : None,
            'sections' : [],
-           'references' : []
+           'references' : [],
+           'data_citations' : {}
         }
         
          
         # JATS ---------------------------------------------------------------------------
         if xml_format == "jats":
-            
+                      
             # title
             title = None
             path = f'.//front/article-meta/title-group/article-title'
@@ -74,16 +77,16 @@ for filename in os.listdir(xml_folder):
             if elements:
                  if elements[0].text:
                      title = elements[0].text.strip()
-                 #print(title)
-                
+                     json_data['title'] = title
+                 
             # doi
             doi = None
             path = f'.//front/article-meta/article-id[@pub-id-type="doi"]'
             elements = root.findall(path)
             if elements:
                  doi = elements[0].text.strip()
-                 #print(doi)
-                 
+                 json_data['doi'] = doi
+                  
             # Note that some JATS files such as 10.1002_chem.202000235 have no sections!
             # Will need to handle body/p
                  
@@ -126,6 +129,34 @@ for filename in os.listdir(xml_folder):
                    }
                    
                    json_data["sections"].append(sec_data)
+                   
+            path = f'.//back/sec'
+            sections = root.findall(path)
+            if sections:
+                for sec in sections:
+                
+                   # section title
+                   sec_title = None
+                   title_element = sec.find('title')
+                   if title_element is not None:
+                       sec_title = title_element.text.strip()
+                       
+                   # paragraph texts (either p, or sec/p)
+                   paragraphs = []
+                       
+                   p_elements = sec.findall('p')                   
+                   for p in p_elements:
+                       if p.text:
+                           paragraph_data = { "text" : p.xpath("normalize-space(string())").strip() }
+                           paragraphs.append(paragraph_data)
+                       
+                   # Create section object
+                   sec_data = {
+                       "title": sec_title,
+                       "paragraphs": paragraphs
+                   }
+                   
+                   json_data["sections"].append(sec_data)                   
           
             path = f'.//back/ref-list/ref'
             ref_elements = root.findall(path)
@@ -162,7 +193,7 @@ for filename in os.listdir(xml_folder):
             if elements:
                  if elements[0].text:
                      title = elements[0].text.strip()
-                 #print(title)
+                     json_data['title'] = title
                  
             # text
             path = f'.//tei:text/tei:div'
@@ -188,8 +219,6 @@ for filename in os.listdir(xml_folder):
                    }
                    
                    json_data["sections"].append(sec_data)
-          
-    
                  
             # references
             path = f'.//tei:listbibl/tei:biblstruct'
@@ -207,7 +236,6 @@ for filename in os.listdir(xml_folder):
                         for link in link_elements:
                            ref_data['doi'] = link.text
      
-                   
                     json_data["references"].append(ref_data)
 
         # BioC --------------------------------------------------------------------------
@@ -243,7 +271,7 @@ for filename in os.listdir(xml_folder):
                    title_element = sec.find(f'infon[@key="section_type"]')
                    if title_element is not None:
                        sec_title = title_element.text.strip()
-                       print(sec_title)
+                       #print(sec_title)
                        
                    if sec_data:
                        if  sec_title and sec_title != previous_sec_title:
@@ -276,9 +304,7 @@ for filename in os.listdir(xml_folder):
              
         # Wiley --------------------------------------------------------------------------
         if xml_format == "wiley":
-        
-            print("Doing Wiley")
-    
+     
             ns = {'wiley': 'http://www.wiley.com/namespaces/wiley'}
             
             # title
@@ -287,13 +313,14 @@ for filename in os.listdir(xml_folder):
             elements = root.findall(path, namespaces=ns)
             if elements and elements[0].text:
                 title = elements[0].text.strip()
-                #print (title)
+                json_data['title'] = title
     
             # doi
             path = f'.//wiley:publicationMeta[@level="unit"]/wiley:doi'
             elements = root.findall(path, namespaces=ns)
             if elements and elements[0].text:
                 doi = elements[0].text.strip()
+                json_data['doi'] = doi
                 
             # paragraphs
             path = f'.//wiley:body/wiley:section'
@@ -308,7 +335,7 @@ for filename in os.listdir(xml_folder):
                    title_element = sec.find(f'wiley:title', namespaces=ns)
                    if title_element is not None:
                        sec_title = title_element.text.strip()
-                       print(sec_title)
+                       #print(sec_title)
                    
                    # paragraph texts (either p, or section/p)
                    paragraphs = []
@@ -354,13 +381,7 @@ for filename in os.listdir(xml_folder):
                     
                     json_data["references"].append(ref_data)
      
-             
-            if title:
-                json_data['title'] = title
-            
-            if doi:
-                json_data['doi'] = doi
-            
+                
         print ("done file")
 
         # Save to JSON with same name but .json extension
@@ -370,6 +391,160 @@ for filename in os.listdir(xml_folder):
         with open(json_path, 'w', encoding='utf-8') as json_file:
             json.dump(json_data, json_file, indent=2, ensure_ascii=False)
 
-print("Finished processing XML files.")
+print("Finished processing XML files")
+print("\n")
 
-# process them here...
+print("Processing JSON")
+
+import re
+
+def is_data_doi(doi):
+    # Check known DOI patterns for data repositories
+    patterns = [
+        r'10\.6073/pasta',
+        r'10\.5061/dryad',
+        r'10\.5256/f1000research\.\d+\.d\d+',
+        r'10\.15468/dl',
+        r'10\.1594/PANGAEA',
+        r'10\.5066/[a-zA-Z]',
+        r'10\.5281/zenodo'
+    ]
+    
+    for pattern in patterns:
+        if re.search(pattern, doi, re.IGNORECASE):
+            return True
+            
+    return False
+
+
+def clean_doi(doi):
+    doi = re.sub(r'[;|,|\.|\)|>]+$', '', doi)
+    doi = re.sub(r'^DOI[:|,]\s*', '', doi, flags=re.IGNORECASE)
+    doi = re.sub(r'^https?://(dx\.)?doi.org/', '', doi)
+    doi = re.sub(r'#.*$/', '', doi)
+    doi = doi.lower()
+    doi = 'https://doi.org/' + doi
+    
+    return doi
+    
+
+def extract_dois(text, paragraph, json_data):
+    """
+    Extracts DOIs from the given text, formats them, and appends them to the paragraph and json_data structures.
+    
+    Parameters:
+        text (str): The text to search for DOIs.
+        paragraph (dict): A dictionary with a key 'ids' where DOIs will be appended.
+        json_data (dict): A dictionary expected to have a key 'data_citations' where DOIs will also be added.
+    """
+    pattern = r'((DOI[:|,]\s*|doi:\s*|https?://(dx\.)?doi.org/)?' \
+              r'10\.[0-9]{4,}(?:\.[0-9]+)*(?:/|%2F)(?:(?!["&\'])\S)+)'
+
+    matches = re.findall(pattern, text, re.IGNORECASE)
+
+    dois = [match[0] for match in matches]
+
+    for doi in dois:
+        doi = clean_doi(doi)
+
+        paragraph.setdefault('ids', []).append(doi)
+
+        json_data.setdefault('data_citations', {}).setdefault('doi', [])
+        if doi not in json_data['data_citations']['doi']:
+            json_data['data_citations']['doi'].append(doi)
+
+def extract_identifiers(text, paragraph, json_data):
+
+    patterns = {
+        'biosample' : r'(SAM[NED](\w)?\d+)', # https://registry.identifiers.org/registry/biosample
+        
+        'chembl'    : r'(CHEMBL\d+)',
+        
+        'sra'       : r'([SED]R[APRSXZ]\d+)', # https://registry.identifiers.org/registry/insdc.sra
+
+    }
+
+    for source, pattern in patterns.items():
+        matches = re.findall(pattern, text)
+        
+        hits = [match[0] for match in matches]
+        
+        for hit in hits:
+            paragraph.setdefault('ids', []).append(hits)
+
+            json_data.setdefault('data_citations', {}).setdefault(source, [])
+            if hit not in json_data['data_citations'][source]:
+                json_data['data_citations'][source].append(hit)
+
+rows = []
+
+for filename in os.listdir(json_folder):
+    if filename.endswith('.json'):
+    
+        print (filename)
+        
+        id = filename.replace('.json', '')
+        
+        json_path = os.path.join(json_folder, filename)
+        
+        with open(json_path, 'rb') as f:
+            json_data = json.load(f)
+
+        for i, section in enumerate(json_data['sections']):
+            for j, paragraph in enumerate(section['paragraphs']):
+                if paragraph['text']:
+                    paragraph['ids'] = []
+                  
+                    # do stuff
+                    text = paragraph['text']
+                    
+                    extract_dois(text, paragraph, json_data)
+                    
+                    extract_identifiers(text, paragraph, json_data)
+                  
+        for reference in json_data['references']:
+            doi = reference.get('doi')
+            if doi:
+                doi = clean_doi(doi)
+                if is_data_doi(doi):
+                    json_data.setdefault('data_citations', {}).setdefault('doi', [])
+                    if doi not in json_data['data_citations']['doi']:
+                        json_data['data_citations']['doi'].append(doi)       
+               
+        print (json.dumps(json_data['data_citations'], indent=4))
+        print("\n")
+          
+        citations = json_data['data_citations'];
+          
+        for data_type, values in citations.items():
+            for value in values:                
+                match data_type:
+                    case "doi":
+                        rows.append([id, value, 'Primary'])
+                    case _:
+                        rows.append([id, value, 'Secondary'])
+                        
+# Output CSV file
+
+with open('submission.csv', 'w', newline='', encoding='utf-8') as f:
+    writer = csv.writer(f, delimiter=',')
+    
+    # Write header
+    writer.writerow(['row_id', 'article_id', 'dataset_id', 'type'])
+    
+    for i, row in enumerate(rows):
+        writer.writerow([i] + row)
+  
+# show first few lines      
+with open('submission.csv', newline='', encoding='utf-8') as f:
+    reader = csv.reader(f, delimiter=',')
+    
+    for i, row in enumerate(reader):
+        print('\t'.join(row))  # Print row with tab spacing
+        if i == 9:  # Stop after 10 rows (including header)
+            break       
+
+
+
+
+  
