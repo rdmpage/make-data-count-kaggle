@@ -6,9 +6,15 @@ import csv
 
 # Define input and output directories
 xml_folder = 'training-xml-extra'
-#xml_folder = 'train/xml'
+xml_folder = 'train/xml'
 #xml_folder = 'test/xml'
 json_folder = 'json'
+
+# Define input and output directories
+#xml_folder = '/kaggle/input/make-data-count-finding-data-references/test/XML'
+#xml_folder = '/kaggle/input/make-data-count-finding-data-references/train/XML'
+
+#json_folder = '/kaggle/temp/'
 
 # Ensure the output directory exists
 os.makedirs(json_folder, exist_ok=True)
@@ -41,9 +47,9 @@ for filename in os.listdir(xml_folder):
 
         # Determine the XML type
         xml_types = {
-           'bioc' : r'BioC.dtd',
-           'jats' : r'(NLM|TaxonX)//DTD',
-           'tei' : r'www.tei-c.org/ns',
+           'bioc'  : r'BioC.dtd',
+           'jats'  : r'(NLM|TaxonX)//DTD',
+           'tei'   : r'www.tei-c.org/ns',
            'wiley' : r'www.wiley.com/namespaces'
         }
         
@@ -121,15 +127,48 @@ for filename in os.listdir(xml_folder):
                    
                    # print (paragraphs);
                    # print ("\n")
+
+                   # tables
+                   tables = []
+                   
+                   t_elements = sec.findall(f'.//table')
+                   for t in t_elements:
+                       table = []
+                       
+                       tr_elements = t.findall('thead/tr')
+                       for tr in tr_elements:
+                           row = [];
+                           th_elements = tr.findall('th')
+                           for th in th_elements:
+                              if th.text:
+                                  th_text = th.xpath("normalize-space(string())").strip()
+                                  row.append(th_text)
+                           table.append(row)
+                       
+ 
+                       tr_elements = t.findall('tbody/tr')
+                       for tr in tr_elements:
+                           row = [];
+                           td_elements = tr.findall('td')
+                           for td in td_elements:
+                              if td.text:
+                                  td_text = td.xpath("normalize-space(string())").strip()
+                                  row.append(td_text)
+ 
+                           table.append(row)
+                           
+                       tables.append(table)
+                    
                    
                    # Create section object
                    sec_data = {
                        "title": sec_title,
-                       "paragraphs": paragraphs
+                       "paragraphs": paragraphs,
+                       "tables": tables
                    }
                    
                    json_data["sections"].append(sec_data)
-                   
+          
             path = f'.//back/sec'
             sections = root.findall(path)
             if sections:
@@ -157,7 +196,8 @@ for filename in os.listdir(xml_folder):
                    }
                    
                    json_data["sections"].append(sec_data)                   
-          
+
+            
             path = f'.//back/ref-list/ref'
             ref_elements = root.findall(path)
             if ref_elements:
@@ -177,10 +217,8 @@ for filename in os.listdir(xml_folder):
                     if link_elements:
                         for link in link_elements:
                            ref_data['doi'] = link.text.replace('https://doi.org/', '')
-     
-                   
-                    json_data["references"].append(ref_data)
-                 
+                        
+                    json_data["references"].append(ref_data)                 
 
         # TEI --------------------------------------------------------------------------
         if xml_format == "tei":
@@ -208,8 +246,7 @@ for filename in os.listdir(xml_folder):
                    for p in p_elements:
                         paragraph_data = { "text" : p.xpath("normalize-space(string())").strip() }
                         paragraphs.append(paragraph_data)
-    
-                   
+                       
                    # print (paragraphs);              
                    # print ("\n")
                    
@@ -398,6 +435,19 @@ print("Processing JSON")
 
 import re
 
+def value_is_ok(value):
+    ok = True
+    
+    #print (value)
+    
+    if re.search(r'[\s|,|"|#]', value):
+       ok = False
+       
+    if len(value) > 64:
+        ok = False
+    
+    return ok
+
 def is_data_doi(doi):
     # Check known DOI patterns for data repositories
     patterns = [
@@ -407,7 +457,9 @@ def is_data_doi(doi):
         r'10\.15468/dl',
         r'10\.1594/PANGAEA',
         r'10\.5066/[a-zA-Z]',
-        r'10\.5281/zenodo'
+        r'10\.5281/zenodo',
+        r'10\.16904/envidat',
+        r'10\.6075/[a-zA-Z0-9]',
     ]
     
     for pattern in patterns:
@@ -422,6 +474,7 @@ def clean_doi(doi):
     doi = re.sub(r'^DOI[:|,]\s*', '', doi, flags=re.IGNORECASE)
     doi = re.sub(r'^https?://(dx\.)?doi.org/', '', doi)
     doi = re.sub(r'#.*$/', '', doi)
+    doi = re.sub(r'[\u2010\u2011\u2012\u2013\u2014\u2015]', '-', doi)
     doi = doi.lower()
     doi = 'https://doi.org/' + doi
     
@@ -446,35 +499,69 @@ def extract_dois(text, paragraph, json_data):
 
     for doi in dois:
         doi = clean_doi(doi)
+        
+        if value_is_ok(doi):
 
-        paragraph.setdefault('ids', []).append(doi)
+            if paragraph:
+                paragraph.setdefault('ids', []).append(doi)
 
-        json_data.setdefault('data_citations', {}).setdefault('doi', [])
-        if doi not in json_data['data_citations']['doi']:
-            json_data['data_citations']['doi'].append(doi)
+            json_data.setdefault('data_citations', {}).setdefault('doi', [])
+            if doi not in json_data['data_citations']['doi']:
+                json_data['data_citations']['doi'].append(doi)
 
 def extract_identifiers(text, paragraph, json_data):
 
+    # ok 
+    # [genbank, interpro, pfam]
+    # [genbank, interpro, pfam, prjna] v7 0.138
+
+    # bad 
+    # [genbank gisaid, interpro, pfam, prjna, sra]
+    # [biosample chembl genbank interpro, pfam, prjna, pxd]
+    # [biosample genbank interpro, pfam, prjna, pxd]
+    
     patterns = {
-        'biosample' : r'(SAM[NED](\w)?\d+)', # https://registry.identifiers.org/registry/biosample
+
+        #'arx'       : r'(E-GEOD-\d+)', # https://www.ebi.ac.uk/biostudies/arrayexpress
+
+        #'biosample' : r'SAM[NED]\w?\d+', # https://registry.identifiers.org/registry/biosample
         
-        'chembl'    : r'(CHEMBL\d+)',
+        #'chembl'    : r'(CHEMBL\d+)',
         
-        'sra'       : r'([SED]R[APRSXZ]\d+)', # https://registry.identifiers.org/registry/insdc.sra
+        #'empiar'    : r'(EMPIAR-\d{5,})',
+        
+        # This regex seems to blow up
+        #'ensembl'   : r'((ENS[FPTG]\d{11}(\.\d+)?)|(FB\w{2}\d{7})|(Y[A-Z]{2}\d{3}[a-zA-Z](\-[A-Z])?)|([A-Z_a-z0-9]+(\.)?(t)?(\d+)?([a-z])?))',
+        
+        'genbank'   : r'\b([A-Z]\d{5}|[A-Z]{2}\d{6}|[A-Z]{4,6}\d{8,10}|[A-J][A-Z]{2}\d{5})(?!\.\d+)?\b',
+        #'gisaid'    : r'(EPI\d+)',
+        #'gxaexpt'   : r'([AEP]-\w{4}-\d+)', # https://registry.identifiers.org/registry/gxa.expt
+        
+        'interpro'  : r'(IPR\d{6})',
+        
+        'pfam'      : r'(PF\d{5})',
+        'prjna'     : r'(PRJ[DEN][A-Z]\d+)', # https://registry.identifiers.org/registry/bioproject
+        #'pxd'       : r'(PXD\d{6})', # https://www.proteomexchange.org	
+
+         # RRID is really just a prefix to an existing identifier,
+         # so potentially any thing could have RRID as a prefix
+        #'rrid'      : r'(RRID:[A-Z][A-Z0-9_]+)',
+
+        #'sra'       : r'([SED]R[APRSXZ]\d+)', # https://registry.identifiers.org/registry/insdc.sra
 
     }
 
     for source, pattern in patterns.items():
         matches = re.findall(pattern, text)
         
-        hits = [match[0] for match in matches]
+        for hit in matches:
+            if value_is_ok(hit):
         
-        for hit in hits:
-            paragraph.setdefault('ids', []).append(hits)
+                paragraph.setdefault('ids', []).append(hit)
 
-            json_data.setdefault('data_citations', {}).setdefault(source, [])
-            if hit not in json_data['data_citations'][source]:
-                json_data['data_citations'][source].append(hit)
+                json_data.setdefault('data_citations', {}).setdefault(source, [])
+                if hit not in json_data['data_citations'][source]:
+                    json_data['data_citations'][source].append(hit)
 
 rows = []
 
@@ -497,19 +584,28 @@ for filename in os.listdir(json_folder):
                   
                     # do stuff
                     text = paragraph['text']
-                    
                     extract_dois(text, paragraph, json_data)
-                    
                     extract_identifiers(text, paragraph, json_data)
-                  
+
+                # tables
+                if section.get('tables'):
+                    for i, table in enumerate(section['tables']):
+                        for j, row in enumerate(table):
+                            for cell in row:
+                                text = cell
+                                # something about text from tables caused the scoring to fail :(
+                                #extract_identifiers(text, None, json_data)
+                            #print ("\n")
+
         for reference in json_data['references']:
             doi = reference.get('doi')
             if doi:
                 doi = clean_doi(doi)
-                if is_data_doi(doi):
-                    json_data.setdefault('data_citations', {}).setdefault('doi', [])
-                    if doi not in json_data['data_citations']['doi']:
-                        json_data['data_citations']['doi'].append(doi)       
+                if value_is_ok(doi):
+                    if is_data_doi(doi):
+                        json_data.setdefault('data_citations', {}).setdefault('doi', [])
+                        if doi not in json_data['data_citations']['doi']:
+                            json_data['data_citations']['doi'].append(doi)       
                
         print (json.dumps(json_data['data_citations'], indent=4))
         print("\n")
@@ -545,6 +641,3 @@ with open('submission.csv', newline='', encoding='utf-8') as f:
             break       
 
 
-
-
-  
