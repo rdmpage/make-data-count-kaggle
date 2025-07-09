@@ -336,7 +336,7 @@ def traverse_document(node, current_type=None):
             if '@id' in node:
                id = node['@id']
         
-            #print(f"[{current_type}] [id: {id}] {node['#text']}")
+            print(f"[{current_type}] [id: {id}] {node['#text']}")
             
             # look for identifiers
             find_dois(id, node['#text'], current_type)
@@ -358,7 +358,7 @@ def traverse_document(node, current_type=None):
                 for section in sections:
                     traverse_document(section, current_type)
             else:
-                traverse_document(sections, current_type)
+                traverse_document(sections, current_type)                
 
         # Traverse other keys (in case nested text exists there)
         for key, value in node.items():

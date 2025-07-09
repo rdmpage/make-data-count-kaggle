@@ -168,6 +168,7 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
 	<!-- table -->
     <xsl:template match="table"><table cellspacing="0" cellpadding="2"><xsl:apply-templates /></table></xsl:template>
     <xsl:template match="tr"><tr><xsl:apply-templates /></tr></xsl:template>
+    <xsl:template match="th"><th><xsl:apply-templates /></th></xsl:template>
     <xsl:template match="td"><td><xsl:apply-templates /></td></xsl:template>
     
     <!-- figure -->
@@ -281,7 +282,12 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
     	<xsl:value-of select="." />
     	<xsl:text>  </xsl:text>
     </xsl:template> 
-    
+ 
+     <xsl:template match="uri">  
+    	<xsl:value-of select="." />
+    	<xsl:text>  </xsl:text>
+    </xsl:template> 
+   
   
 	
 <!--

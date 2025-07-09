@@ -43,11 +43,12 @@ if (1)
 {
 
 	$xml_filename = 'train/XML/10.1111_eva.12151.xml';
-	//$xml_filename = 'train/XML/10.3897_zookeys.500.9360.xml';
+	$xml_filename = 'train/XML/10.3897_zookeys.500.9360.xml';
 	
 	//$xml_filename = 'train/XML/10.1186_s13059-020-1949-z.xml';
 	
-	$xml_filename = 'train/XML/10.1186_s12885-018-4229-5.xml';
+	//$xml_filename = 'train/XML/10.1186_s12885-018-4229-5.xml';
+	//$xml_filename = 'train/XML/10.7717_peerj.12422.xml';
 	
 	$xslt_filename = 'article-xslt/jats-html.xsl';
 
