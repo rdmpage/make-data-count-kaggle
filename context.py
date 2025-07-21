@@ -6,6 +6,7 @@ import sys
 from lxml import etree
 import xmltodict
 import pprint
+
 import uuid
 
 # Define input and output directories
@@ -134,6 +135,37 @@ for filename in sorted(os.listdir(xml_folder)):
 
 print("Finished processing XML files")
 
+#-----------------------------------------------------------------------------------------
+# Given the result of a regex match, the source text, and the type of entity being
+# matched, store any hits as simple annotations. we store start and end coordinates,
+# and prefix and suffix strings. We also store a somewhat arbitrary measure of confidence
+def make_annotation(match, text, annotation_type, section_type):
+    annotation = {}
+
+    annotation['exact'] = match.group()
+    
+    # start and end positions in the string
+    start = match.start()
+    end =  match.end()
+    
+    # get prefix and suffix
+    left = max(0, start - 64)
+    right = min(len(text), end + 64)
+    
+    annotation['prefix'] = text[left:start]
+    annotation['suffix'] = text[end:right]
+    
+    annotation['start'] = start
+    annotation['end ']=  end
+    
+    annotation['type'] = annotation_type
+    
+    annotation['section_type'] = section_type
+    
+    #annotation['confidence'] = confidence
+    
+    return annotation
+    
 #----------------------------------------------------------------------------------------- 
 # final sanity check on DOI
 def doi_is_ok(doi):
@@ -188,41 +220,7 @@ def clean_doi(doi):
     # 10.3390_s23094491	https://doi.org/10.5281/zenodo.7871636(
         
     return doi
-
-#----------------------------------------------------------------------------------------- 
-# clean identifier, for now blank 
-def clean_identifier(id):
-    return id
-
-#-----------------------------------------------------------------------------------------
-# Given the result of a regex match, the source text, and the type of entity being
-# matched, store any hits as simple annotations. we store start and end coordinates,
-# and prefix and suffix strings.
-def make_annotation(match, text, annotation_type, section_type):
-    annotation = {}
-
-    annotation['exact'] = match.group()
     
-    # start and end positions in the string
-    start = match.start()
-    end =  match.end()
-    
-    # get prefix and suffix
-    left = max(0, start - 64)
-    right = min(len(text), end + 64)
-    
-    annotation['prefix'] = text[left:start]
-    annotation['suffix'] = text[end:right]
-    
-    annotation['start'] = start
-    annotation['end ']=  end
-    
-    annotation['type'] = annotation_type
-    
-    annotation['section_type'] = section_type
-    
-    return annotation
-
 #-----------------------------------------------------------------------------------------
 # strip any namespace prefix from a string
 def remove_namespace(value):
@@ -286,7 +284,9 @@ def find_dois(id, text, section_type):
             if id not in annotations:
                annotations[id] = []
             annotations[id].append(annot)
-        
+    
+
+
 #-----------------------------------------------------------------------------------------
 # Find data identifiers
 def find_datasets(id, text, section_type):
@@ -316,26 +316,24 @@ def find_datasets(id, text, section_type):
         'insdcgca'    : r'(GCA_[0-9]{9}(\.[0-9]+)?)', # insdc.gca
         'interpro'    : r'IPR\d{6}', 
         'massive'     : r'MSV\d{9}', # MassIVE https://registry.identifiers.org/registry/massive                   
-        'nm'          : r'(N[CM]_?\d{6}(\.[0-9]+)?)', # added ? after _ because eLife sometimes misses the underscore. https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/?report=objectonly
-        #'pdb'         : r'\b((PDB(\s*ID)?:?\s*)?[0-9][A-Za-z][A-Za-z0-9]{2})\b', # PDB, likely lots of false hits unless we include prefix        
+        'nm'          : r'(N[CMP]_?\d{6,9}(\.[0-9]+)?)', # added ? after _ because eLife sometimes misses the underscore. https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/?report=objectonly
+        'pdb'         : r'\b((PDB(\s*ID)?:?\s*)?[0-9][A-Za-z][A-Za-z0-9]{2})\b', # PDB, likely lots of false hits unless we include prefix        
         'pfam'        : r'(PF\d{5}(.\d{1,2})?)', # PFAM seems to have versions, e.g. PF01493.23)   
         'prjna'       : r'PRJ[DEN][A-Z]\d+', # https://registry.identifiers.org/registry/bioproject
         'pxd'         : r'PXD\d{6}', # https://www.proteomexchange.org    
         'sra'         : r'((SRA:)?[SED]R[APRSXZ]\d+)', # https://registry.identifiers.org/registry/insdc.sra
         'up'          : r'UP\d{9}', # https://www.uniprot.org/proteomes/UP000006548
 
-        #'uniprot'     : r'\b([A-N,R-Z][0-9]([A-Z][A-Z, 0-9][A-Z, 0-9][0-9]){1,2})|([O,P,Q][0-9][A-Z, 0-9][A-Z, 0-9][A-Z, 0-9][0-9])(\.\d+)?\b', # https://registry.identifiers.org/registry/uniprot
-    }   
-    
+        'uniprot'     : r'\b(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9][A-Z0-9]{7})\b', # ChatGPT
+    }       
     for source, pattern in patterns.items():
         for match in re.finditer(pattern, text):
-            #print (source, " ", match.group())
-            # sanity check
+        
             if value_is_ok(match.group()) and not value_ignore(match.group()):
                 annot = make_annotation(match, text, source, section_type)
                 
                 # store a cleaned version of the identifier
-                annot['value'] = clean_identifier(annot['exact'])
+                annot['value'] = annot['exact']
                 
                 match source:
                     case 'gse':
@@ -347,12 +345,164 @@ def find_datasets(id, text, section_type):
                     case 'sra':
                         annot['value'] = remove_namespace(annot['value'])
 
-                    #case :_                
-                
+                    #case :_                                
+                     
                 if id not in annotations:
                     annotations[id] = []
                 annotations[id].append(annot)
+
+
+#-----------------------------------------------------------------------------------------
+def short_uuid_hex(length=8):
+    return uuid.uuid4().hex[:length]
+    
+#-----------------------------------------------------------------------------------------
+# get "context" which is a list of ids of blocks of text that mention a database
+def get_context(id, text):
+    database_patterns = {
+        'dbsnp'     : r'\bSNPs?\b',
+        'genbank'   : r'(DDBJ|Gen[B|b]ank|European Nucleotide Archive|ENA|NCBI)',
+        'hpa'       : r'Human Protein Atlas',
+        'pdb'       : r'(Protein Data Bank|PDB)',
+        'pfam'      : r'(Pfam)',
+        'prjna'     : r'(Bio[P|p]roject|raw reads|Sequence Read Archive|SRA)',
+        'sra'       : r'(raw reads|Sequence Read Archive|SRA)',
+        'uniprot'   : r'Uni[P|p]rot',
+    }
+            
+    for source, pattern in database_patterns.items():
+        if re.search(pattern, text):
+            if source not in context:
+                context[source] = []
+            context[source].append(id)
+ 
+#-----------------------------------------------------------------------------------------
+# Recursively traverse document tree, keeping track of section type
+# This is where we extract identifiers/DOIs
+def traverse_document(node, current_type=None):
+    if isinstance(node, dict):
+        # Update section type if this is a section with a 'type' attribute
+        if 'type' in node:
+            current_type = node['type']
+
+        # Print text with the current section type
         
+        id = 'Unknown'
+        if '@id' in node:
+            id = node['@id']
+        else:
+            id = short_uuid_hex()
+            
+        text = ''
+        if '#text' in node:
+            text = node['#text']
+            
+        if text =="":
+           if 'td' in node and isinstance(node['td'], list):
+                if all(isinstance(item, str) for item in node['td']):
+                   text = ' '.join(node['td'])
+                   #print(f"[{current_type}] [id: {id}] {text}")
+                          
+                elif all(isinstance(item, dict) for item in node['td']):
+                   for td in node['td']:
+                       #print (td)
+                       if '#text' in td:
+                           text += ' ' + td['#text']
+
+                   #print(f"[{current_type}] [id: {id}] {text}")            
+
+        if text != '':
+        
+            #print(f"[{current_type}] [id: {id}] {text}")
+            get_context(id, text)
+             
+             # look for identifiers
+            find_dois(id, text, current_type)
+            find_datasets(id, text, current_type)
+             
+        if 'doi' in node:
+             find_dois(id, node['doi'], current_type)
+            
+        # Traverse 'p'
+        if 'p' in node:
+            p = node['p']
+            if isinstance(p, list):
+                for item in p:
+                    traverse_document(item, current_type)
+            else:
+                traverse_document(p, current_type)
+
+        # Traverse nested 'section'
+        if 'section' in node:
+            sections = node['section']
+            if isinstance(sections, list):
+                for section in sections:
+                    traverse_document(section, current_type)
+            else:
+                traverse_document(sections, current_type)                
+
+        # Traverse other keys (in case nested text exists there)
+        for key, value in node.items():
+            if key not in {'#text', 'p', 'section', 'type', 'td'}:
+                traverse_document(value, current_type)
+
+    elif isinstance(node, list):
+        for item in node:
+            traverse_document(item, current_type)
+
+#-----------------------------------------------------------------------------------------
+# Apply some simple rules to determine whether a citation is OK
+def citation_is_ok(citation, mention):
+
+    ok = True
+    
+    match mention['type']:
+
+        # SNPs should have a database mention and not be in the references (where they can
+        # often be confused for parts of DOIs)
+        case 'dbsnp':
+            ok = (mention['doc_mention'] or mention['sec_mention'])
+            ok = ok and not set(mention['sec_types']) & set(['References'])
+
+        # PBD should have a database mention
+        case 'pdb':
+            ok = (mention['doc_mention'] or mention['sec_mention'])
+ 
+        # UniProt should have a database mention
+        case 'uniprot':
+            ok = (mention['doc_mention'] or mention['sec_mention'])
+            ok = ok and not set(mention['sec_types']) & set(['Acknowledgements'])
+                   
+        case 'doi':
+            ok = is_data_doi(citation)
+                
+        case _:
+            ok = True
+
+    return ok
+    
+#-----------------------------------------------------------------------------------------
+# Apply some simple rules to determine citation type
+def get_citation_type(citation, mention):
+
+    citation_type = 'Secondary' # default
+    
+    match mention['type']:
+        case 'doi':
+                        
+            if is_primary_doi(citation):
+                citation_type = 'Primary'
+            elif set(mention['sec_types']) & set(['DatasetDescription', 'SupplementaryInformationDescription']):
+                citation_type = 'Primary'
+            elif not set(mention['sec_types']) & set(['Acknowledgements', 'Methods', 'References']):
+                citation_type = 'Primary'
+                
+        case _:
+            if set(mention['sec_types']) & set(['DatasetDescription', 'SupplementaryInformationDescription']):
+                citation_type = 'Primary'
+
+    return citation_type
+    
 #----------------------------------------------------------------------------------------- 
 # Check known DOI patterns for data repositories
 def is_data_doi(doi):
@@ -420,106 +570,8 @@ def is_primary_doi(doi):
             return True
             
     return False
-    
-#-----------------------------------------------------------------------------------------
-def short_uuid_hex(length=8):
-    return uuid.uuid4().hex[:length]
-    
-#-----------------------------------------------------------------------------------------
-# get "context" which is a list of ids of blocks of text that mention a database
-def get_context(id, text):
-    database_patterns = {
-        'dbsnp'     : r'\bSNPs?\b',
-        'genbank'   : r'(Genbank|European Nucleotide Archive|NCBI)',
-        'hpa'       : r'Human Protein Atlas',
-        'pdb'       : r'(Protein Data Bank|PDB)',
-        'pfam'      : r'(Pfam)',
-        'prjna'     : r'(Bio[P|p]roject|raw reads|Sequence Read Archive|SRA)',
-        'sra'       : r'(raw reads|Sequence Read Archive|SRA)',
-        'uniprot'   : r'Uni[P|p]rot',
-    }
-            
-    for source, pattern in database_patterns.items():
-        if re.search(pattern, text):
-            if source not in context:
-                context[source] = []
-            context[source].append(id)
-
-#-----------------------------------------------------------------------------------------
-# Recursively traverse document tree, keeping track of section type
-# This is where we extract identifiers/DOIs
-def traverse_document(node, current_type=None):
-    if isinstance(node, dict):
-        # Update section type if this is a section with a 'type' attribute
-        if 'type' in node:
-            current_type = node['type']
-
-        # Print text with the current section type
         
-        id = 'Unknown'
-        if '@id' in node:
-            id = node['@id']
-        else:
-            id = short_uuid_hex()
-            
-        text = ''
-        if '#text' in node:
-            text = node['#text']
-            
-        if text =="":
-           if 'td' in node and isinstance(node['td'], list):
-                if all(isinstance(item, str) for item in node['td']):
-                   text = ' '.join(node['td'])
-                   #print(f"[{current_type}] [id: {id}] {text}")
-                          
-                elif all(isinstance(item, dict) for item in node['td']):
-                   for td in node['td']:
-                       #print (td)
-                       if '#text' in td:
-                           text += ' ' + td['#text']
-
-                   #print(f"[{current_type}] [id: {id}] {text}")            
-
-        if text != '':        
-            #print(f"[{current_type}] [id: {id}] {text}")
-            
-            get_context(id, text)
-            
-            # look for identifiers
-            find_dois(id, text, current_type)
-            find_datasets(id, text, current_type)
-            
-        if 'doi' in node:
-            find_dois(id, node['doi'], current_type)
-            
-        # Traverse 'p'
-        if 'p' in node:
-            p = node['p']
-            if isinstance(p, list):
-                for item in p:
-                    traverse_document(item, current_type)
-            else:
-                traverse_document(p, current_type)
-
-        # Traverse nested 'section'
-        if 'section' in node:
-            sections = node['section']
-            if isinstance(sections, list):
-                for section in sections:
-                    traverse_document(section, current_type)
-            else:
-                traverse_document(sections, current_type)                
-
-        # Traverse other keys (in case nested text exists there)
-        for key, value in node.items():
-            if key not in {'#text', 'p', 'section', 'type', 'td'}:
-                traverse_document(value, current_type)
-
-    elif isinstance(node, list):
-        for item in node:
-            traverse_document(item, current_type)
-
-
+    
 #-----------------------------------------------------------------------------------------
 # For each JSON document we process the text for identifiers, such as DOIs. 
 # These are stored as annotations.
@@ -543,83 +595,72 @@ for filename in sorted(os.listdir(json_folder)):
         # starting point for document traversal
         article = doc['html']['body']['article']
         
-        # initialise map between database names and text block ids
+        # traverse document
+        
         context = {}
         
-        # traverse document
-        traverse_document(article)                     
+        traverse_document(article)   
         
-        # output list of annotations
-        #pprint.pprint (annotations)
+        #print ("Context")
+        # pprint.pprint (context)       
         
-        data_citations[article_id] = {}
+        # pprint.pprint (annotations) 
         
-        # filter, classify, and output
+        # process annotations
+        
+        # Mentions group annotations by the dataset that is cited (e.g., by accession number)
+        mentions = {}
+        
+        # merge details for each mention of a dataset
         for id, annots in annotations.items():
             for annot in annots:
-                citation = annot['value']
-                
-                # do any filering here
-                ok = True
-                
-                # Only keep DOIs that look like they are from repositories
-                if annot['type'] == 'doi':
-                    ok = is_data_doi(citation)
-
-                # SNPs can resemble some DOIs so exclude if found in references
-                if annot['type'] =='dbsnp':
-                    ok = annot['section_type'] != 'References'
-                    
-                # Don't include things in Acknowledgements which aren't DOIs as they are likely to be grants
-                if ok:
-                    if annot['type'] != 'doi':
-                        ok = annot['section_type'] != 'Acknowledgements'
-                 
-                if ok:
-                    # classify by type
-                    citation_type = 'Secondary' # default
-                    
-                    match (annot['type']):
-                        case 'doi':
-                        
-                           #pprint.pprint (annot)
-                        
-                           if is_primary_doi(citation):
-                                citation_type = 'Primary'
-                           #elif annot['section_type'] and annot['section_type'] != 'References':
-                           elif annot['section_type'] and not annot['section_type'] in ['Acknowledgements', 'Methods','References']:
-                               citation_type = 'Primary'
-                               
-                           # debugging
-                           #if not annot['section_type']:
-                           #print (annot['section_type'],  " | ", annot['prefix'], " | ", citation, " | ", annot['suffix'], " | ", citation_type)
-
-#                        case 'biosample':
-#                           citation_type = 'Primary'
-#                           #print (annot['section_type'],  " | ", annot['prefix'], " | ", citation, " | ", annot['suffix'], " | ", citation_type)
-#
-#
-#                        case 'prjna':
-#                            citation_type = 'Primary'
-#
-#                        case 'sra':
-#                            citation_type = 'Primary'
-#
-                        case _:
-                        	 # including Results is slighgtly worse locally
-                             citation_type = 'Secondary' 
-                             if annot['section_type'] in ['DatasetDescription', 'SupplementaryInformationDescription']:
-                                 citation_type = 'Primary'
-
-                             #print (annot['section_type'],  " | ", annot['prefix'], " | ", citation, " | ", annot['suffix'], " | ", citation_type)
-                            
-          
-                    if not citation in data_citations[article_id]:
-                         data_citations[article_id][citation] = citation_type
-                
-                #rows.append([article_id, citation, 'Primary'])
+               if not annot['value'] in mentions:
+                   mentions[annot['value']] = {}
+                   mentions[annot['value']]['type'] = annot['type']
+                   mentions[annot['value']]['sections'] = []                   
+                   mentions[annot['value']]['doc_mention'] = False
+                   mentions[annot['value']]['sec_mention'] = False
+                   mentions[annot['value']]['sec_types'] = []
+                   
+               # what section mentions this dataset?
+               mentions[annot['value']]['sections'].append(id)
+               
+               # what kind of section is it
+               if annot['section_type']:
+                   if not annot['section_type'] in mentions[annot['value']]['sec_types']:
+                       mentions[annot['value']]['sec_types'].append(annot['section_type'])
+               
+               # does doc and section mention source dataset
+               if annot['type'] in context:
+                   # doc mentions source dataset
+                   mentions[annot['value']]['doc_mention'] = True
+               
+                   if id in context[annot['type']]:
+                       # this section mentions source dataset
+                       mentions[annot['value']]['sec_mention'] = True
+               
+               # prefix/suffix clues
+                   
             
-        #print (data_citations)    
+        if False:
+            print ("Mentions")
+            pprint.pprint (mentions)
+        
+        # Now we have enough(?) information to classify the mentions...
+                  
+        data_citations[article_id] = {}
+        
+        for citation, mention in mentions.items():
+            if citation_is_ok(citation, mention):
+                citation_type = get_citation_type(citation, mention)
+                
+                if citation in data_citations[article_id]:
+                    # don't overwrite a primary citation
+                    if data_citations[article_id][citation] != 'Primary':
+                        data_citations[article_id][citation] = citation_type
+                else:
+                    # first time we've encountered this ciutation so just add it
+                    data_citations[article_id][citation] = citation_type
 
 #-----------------------------------------------------------------------------------------
         
@@ -632,8 +673,6 @@ for article_id, citation in data_citations.items():
         
 #-----------------------------------------------------------------------------------------
 # Output CSV file
-
-
 
 with open('submission.csv', 'w', newline='', encoding='utf-8') as f:
     writer = csv.writer(f, delimiter=',')
@@ -653,3 +692,5 @@ with open('submission.csv', newline='', encoding='utf-8') as f:
         if i == 9:  # Stop after 10 rows (including header)
             break       
         
+
+

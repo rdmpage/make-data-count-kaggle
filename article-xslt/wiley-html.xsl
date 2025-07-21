@@ -61,59 +61,128 @@ exclude-result-prefixes="xlink wiley wiley2"
     <xsl:template match="wiley:section">
     	<section id="{generate-id()}">
     	
-    	<xsl:if test="@type">
-    		<type>
-    			<xsl:choose>
-    			     <xsl:when test="@type='acknowledgments'">
-    			     	<xsl:text>Acknowledgements</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:when test="@type='caption'">
-    			     	<xsl:text>Caption</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:when test="@type='conclusions'">
-    			     	<xsl:text>Conclusion</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:when test="@type='conflictOfInterest'">
-    			     	<xsl:text>ConflictOfInterest</xsl:text>
-    			     </xsl:when>
-    			     
-     			     <xsl:when test="@type='dataAvailability'">
-    			     	<xsl:text>DatasetDescription</xsl:text>
-    			     </xsl:when>   
-    			      			     
-   			     	 <xsl:when test="@type='discussion'">
-    			     	<xsl:text>Discussion</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:when test="@type='materialsAndMethods'">
-    			     	<xsl:text>Methods</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:when test="@type='methods'">
-    			     	<xsl:text>Methods</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:when test="@type='opening'">
-    			     	<xsl:text>Introduction</xsl:text>
-    			     </xsl:when>   
+    	<xsl:choose>
+			<xsl:when test="@type">
+				<type>
+					<xsl:choose>
+						 <xsl:when test="@type='acknowledgments'">
+							<xsl:text>Acknowledgements</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:when test="@type='caption'">
+							<xsl:text>Caption</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:when test="@type='conclusions'">
+							<xsl:text>Conclusion</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:when test="@type='conflictOfInterest'">
+							<xsl:text>ConflictOfInterest</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:when test="@type='dataAvailability'">
+							<xsl:text>DatasetDescription</xsl:text>
+						 </xsl:when>   
+										 
+						 <xsl:when test="@type='discussion'">
+							<xsl:text>Discussion</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:when test="@type='materialsAndMethods'">
+							<xsl:text>Methods</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:when test="@type='methods'">
+							<xsl:text>Methods</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:when test="@type='opening'">
+							<xsl:text>Introduction</xsl:text>
+						 </xsl:when>   
+	
+						 <xsl:when test="@type='openResearch'">
+							<xsl:text>DatasetDescription</xsl:text>
+						 </xsl:when>   
+										 
+						 <xsl:when test="@type='results'">
+							<xsl:text>Results</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:otherwise>
+							<xsl:value-of select="@type"/>
+						 </xsl:otherwise>
+					</xsl:choose>
+				</type>
+			</xsl:when>  
+			<xsl:otherwise> 
+					<!-- try to type based on title -->
+					<xsl:if test="wiley:title">
+						<xsl:choose>   
+									
+							 <xsl:when test="wiley:title='DATA AND RESOURCES'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
 
-    			     <xsl:when test="@type='openResearch'">
-    			     	<xsl:text>DatasetDescription</xsl:text>
-    			     </xsl:when>   
-    			      			     
-    			     <xsl:when test="@type='results'">
-    			     	<xsl:text>Results</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:otherwise>
-    			     	<xsl:value-of select="@type"/>
-    			     </xsl:otherwise>
-    			</xsl:choose>
-    		</type>
-    	</xsl:if>   	
+							 <xsl:when test="wiley:title='Data deposition'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>	
+
+							 <xsl:when test="wiley:title='Data accessibility'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>	
+
+							 <xsl:when test="wiley:title='INTRODUCTION'">
+								<type><xsl:text>Introduction</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='Introduction'">
+								<type><xsl:text>Introduction</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='METHODS'">
+								<type><xsl:text>Methods</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='Materials and methods'">
+								<type><xsl:text>Methods</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='RESULTS'">
+								<type><xsl:text>Results</xsl:text></type> 
+							 </xsl:when>
+							 
+							 <xsl:when test="wiley:title='Results'">
+								<type><xsl:text>Results</xsl:text></type> 
+							 </xsl:when>							 
+
+							 <xsl:when test="wiley:title='DISCUSSION'">
+								<type><xsl:text>Discussion</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='Discussion'">
+								<type><xsl:text>Discussion</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='CONCLUSIONS'">
+								<type><xsl:text>Conclusion</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='ACKNOWLEDGEMENTS'">
+								<type><xsl:text>Acknowledgements</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="wiley:title='DECLARATION OF INTEREST STATEMENT'">
+								<type><xsl:text>ConflictOfInterest</xsl:text></type> 
+							 </xsl:when>
+							 
+							 <xsl:otherwise> 
+							 </xsl:otherwise> 
+						</xsl:choose>
+					</xsl:if>
+			
+			</xsl:otherwise> 
+    	</xsl:choose>	
     	
     	<!--
     	<h2>
@@ -161,6 +230,7 @@ exclude-result-prefixes="xlink wiley wiley2"
 
    <xsl:template match="wiley:caption">
    		<figcaption>
+   			<type>Caption</type>
     		<xsl:apply-templates/>
     	</figcaption>
     </xsl:template>

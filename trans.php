@@ -16,6 +16,12 @@ if (0)
 	//$xml_filename = 'c3ddf729-d783-4d70-b69b-cf16e1c5d219_15142_-_mark_field.pdf.tei.xml';
 	$xml_filename = 'sdata201433.pdf.tei.xml';
 	
+	$xml_filename = 'train/XML/10.1002_ecs2.4619.xml';	
+	
+	$xml_filename = 'train/XML/10.5194_essd-2023-198.xml';	
+	
+	$xml_filename = 'train/XML/10.3133_cir1497.xml';	
+	
 	$xslt_filename = 'tei.xsl';
 	$xslt_filename = 'article-xslt/tei-html.xsl';
 }
@@ -34,6 +40,8 @@ if (0)
 	
 	$xml_filename = 'explore/not-in-training/cas.12935.xml';
 	
+	$xml_filename = 'train/XML/10.1002_esp.5090.xml';
+	
 	$xslt_filename = 'wiley.xsl';
 	$xslt_filename = 'article-xslt/wiley-html.xsl';
 }
@@ -49,6 +57,13 @@ if (1)
 	
 	//$xml_filename = 'train/XML/10.1186_s12885-018-4229-5.xml';
 	//$xml_filename = 'train/XML/10.7717_peerj.12422.xml';
+	$xml_filename = 'train/XML/10.7717_peerj.10452.xml';
+	$xml_filename = 'train/XML/10.1186_s13059-019-1924-8.xml';
+	
+	$xml_filename = 'train/XML/10.12688_f1000research.13622.1.xml';
+	$xml_filename = 'train/XML/10.12688_f1000research.11698.1.xml';
+	
+	$xml_filename = 'train/XML/10.1371_journal.pone.0146274.xml';
 	
 	$xslt_filename = 'article-xslt/jats-html.xsl';
 

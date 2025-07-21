@@ -137,6 +137,7 @@ xmlns:xlink='http://www.w3.org/1999/xlink'
 					<xsl:when test=". = 'fig_caption'">
 						<figure>
 							<figcaption>
+								<type>Caption</type>
 								<xsl:value-of select="../text"/>
 							</figcaption>	
 						</figure>							

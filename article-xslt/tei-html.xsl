@@ -64,15 +64,22 @@ xmlns:tei="http://www.tei-c.org/ns/1.0"
 	</title> 
 	-->
 	
-	<xsl:apply-templates/>
+	<xsl:apply-templates select="//tei:text" />
 	
 	</article>
 	</body>
 	</html>
 </xsl:template>
 
+	<!--
     <xsl:template match="tei:teiHeader">
     </xsl:template>
+    -->
+    
+    <xsl:template match="tei:text">
+    	<xsl:apply-templates />
+    </xsl:template>
+    
 
     <!-- GROBID has structured references -->
     <!-- note that we may get camel Case and all lowercase tag names :( -->
@@ -86,7 +93,7 @@ xmlns:tei="http://www.tei-c.org/ns/1.0"
         	
  			<xsl:apply-templates select="tei:note"/>  
 
- 			<!-- <xsl:apply-templates select="*/tei:idno"/> -->
+ 			<xsl:apply-templates select="*/tei:idno"/> 
 
  		</cite>
     </xsl:template>
@@ -104,7 +111,7 @@ xmlns:tei="http://www.tei-c.org/ns/1.0"
         	
  			<xsl:apply-templates select="tei:note"/>  
  			
- 			<!-- <xsl:apply-templates select="*/tei:idno"/>  -->
+ 			<xsl:apply-templates select="*/tei:idno"/> 
 
  		</cite>
     </xsl:template>
@@ -146,40 +153,70 @@ xmlns:tei="http://www.tei-c.org/ns/1.0"
     <!-- section -->
     <xsl:template match="tei:div">
     	<section id="{generate-id()}">
-        	<xsl:if test="@type">
-    			<xsl:choose>
-    			
-    			     <xsl:when test="@type='acknowledgement'">
-    			     	<xsl:text>Acknowledgements</xsl:text>
-    			     </xsl:when>
- 
-      			     <xsl:when test="@type='annex'">
-    			     	<xsl:text>DatasetDescription</xsl:text>
-    			     </xsl:when>
+    	
+    		<xsl:choose>
+				<xsl:when test="@type">
+					<type>
+					<xsl:choose>
+					
+						 <xsl:when test="@type='acknowledgement'">
+							<xsl:text>Acknowledgements</xsl:text>
+						 </xsl:when>
+	 
+						 <xsl:when test="@type='annex'">
+							<xsl:text>DatasetDescription</xsl:text>
+						 </xsl:when>
+	
+						 <xsl:when test="@type='availability'">
+							<xsl:text>SupplementaryInformationDescription</xsl:text>
+						 </xsl:when>
+	
+						 <xsl:when test="@type='funding'">
+							<xsl:text>Acknowledgements</xsl:text>
+						 </xsl:when>
+	
+						 <xsl:when test="@type='references'">
+							<xsl:text>References</xsl:text>
+						 </xsl:when>
+						 
+						 <xsl:otherwise>
+							<xsl:value-of select="@type"/>
+						 </xsl:otherwise>
+					</xsl:choose>
+					</type>
+				</xsl:when>
+				<xsl:otherwise>
+					<xsl:choose>
+					
+						 <xsl:when test="text()[1]='Introduction'">
+							<type><xsl:text>Introduction</xsl:text></type>
+						 </xsl:when>
+						 
+						 <xsl:when test="text()[1]='Results'">
+							<type><xsl:text>Results</xsl:text></type>
+						 </xsl:when>						 
 
-     			     <xsl:when test="@type='availability'">
-    			     	<xsl:text>SupplementaryInformationDescription</xsl:text>
-    			     </xsl:when>
-
-      			     <xsl:when test="@type='funding'">
-    			     	<xsl:text>Acknowledgements</xsl:text>
-    			     </xsl:when>
-
-      			     <xsl:when test="@type='references'">
-    			     	<xsl:text>References</xsl:text>
-    			     </xsl:when>
-    			     
-    			     <xsl:otherwise>
-    			     	<xsl:value-of select="@type"/>
-    			     </xsl:otherwise>
-    			</xsl:choose>
-       		</xsl:if>
+						 <xsl:when test="text()[1]='Conclusions'">
+							<type><xsl:text>Conclusion</xsl:text></type>
+						 </xsl:when>
+						 
+						 <xsl:when test="text()[1]='Appendix'">
+							<type><xsl:text>SupplementaryInformationDescription</xsl:text></type>
+						 </xsl:when>						 
+						 
+						 
+						 <xsl:otherwise>
+						 </xsl:otherwise>
+					</xsl:choose>						
+				</xsl:otherwise>
+			</xsl:choose>	
        		
        		<!--
        		<h2>
        		<xsl:value-of select="text()[1]" />
-       		</h2>	
-       		-->	
+       		</h2>
+       		-->
+       		
     	
     		<xsl:apply-templates/>
     	</section>
@@ -220,12 +257,14 @@ xmlns:tei="http://www.tei-c.org/ns/1.0"
 
     <xsl:template match="tei:figdesc">
     	<caption>
+    		<type>Caption</type>
     		<xsl:apply-templates/>
     	</caption>
     </xsl:template>
 
     <xsl:template match="tei:figDesc">
     	<caption>
+    		<type>Caption</type>
     		<xsl:apply-templates/>
     	</caption>
     </xsl:template>
@@ -271,6 +310,15 @@ xmlns:tei="http://www.tei-c.org/ns/1.0"
     		<xsl:value-of select="." />
     	</li>
     </xsl:template>
+
+    <xsl:template match="tei:idno">
+    	<xsl:if test="@type='DOI'">
+    		<doi>
+    			<xsl:value-of select="." />
+    		</doi>
+    	</xsl:if>
+    </xsl:template>
+    
     
 
  

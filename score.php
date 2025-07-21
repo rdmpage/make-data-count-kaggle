@@ -90,44 +90,50 @@ function get_text_filename($id)
 //----------------------------------------------------------------------------------------
 function xml_type($id)
 {
+	$format = 'missing';
+	
 	$filename = get_xml_filename($id);
 	
-	$xml = file_get_contents($filename);
-	
-	$format = 'unknown';
-	
-	$header = substr($xml, 0, 1024);
-
-	// BioC annotations
-	if (preg_match('/"BioC.dtd"/', $header))
+	if (file_exists($filename))
 	{
-		$format = 'bioc';
-	}
+		
+		$xml = file_get_contents($filename);
+		
+		$format = 'unknown';
+		
+		$header = substr($xml, 0, 1024);
 	
-	// NLM JATS
-	if (preg_match('/NLM\/\/DTD/', $header))
-	{
-		$format = 'jats';
+		// BioC annotations
+		if (preg_match('/"BioC.dtd"/', $header))
+		{
+			$format = 'bioc';
+		}
+		
+		// NLM JATS
+		if (preg_match('/NLM\/\/DTD/', $header))
+		{
+			$format = 'jats';
+		}
+		
+		// TaxonX
+		if (preg_match('/TaxonX\/\/DTD/', $header))
+		{
+			$format = 'taxonx';
+		}
+		
+		// TEI
+		if (preg_match('/www.tei-c.org\/ns/', $header))
+		{
+			$format = 'tei';
+		}
+		
+		// Wiley
+		if (preg_match('/www.wiley.com\/namespaces/', $header))
+		{
+			$format = 'wiley';
+		}
 	}
-	
-	// TaxonX
-	if (preg_match('/TaxonX\/\/DTD/', $header))
-	{
-		$format = 'taxonx';
-	}
-	
-	// TEI
-	if (preg_match('/www.tei-c.org\/ns/', $header))
-	{
-		$format = 'tei';
-	}
-	
-	// Wiley
-	if (preg_match('/www.wiley.com\/namespaces/', $header))
-	{
-		$format = 'wiley';
-	}
-	
+		
 	return $format;
 }
 
@@ -237,7 +243,7 @@ if (1)
             
             'dbsnp'     => 'rs\d{4,}', // modified from https://registry.identifiers.org/registry/dbsnp
             
-            //'dra'       => 'DRA\d{6}', // https://www.ddbj.nig.ac.jp/dra/index-e.html
+            'dra'       => 'DRA\d{6}', // https://www.ddbj.nig.ac.jp/dra/index-e.html
             
             'empiar'    => 'EMPIAR-\d{5,}',
             
@@ -255,10 +261,10 @@ if (1)
             
             'geo'       => 'GSM\d{5,}', // modified https://registry.identifiers.org/registry/geo
             
-            //'massive'   => 'MSV\d{9}', // https://massive.ucsd.edu/
+            'massive'   => 'MSV\d{9}', // https://massive.ucsd.edu/
             
             // https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/?report=objectonly
-            'nm'        => '(N[CM]_\d{6}(\.[0-9]+)?)', 
+            'nm'        => '(N[CMP]_\d{6}(\.[0-9]+)?)', 
             
             'gse'       => '((GEO:\s*)?GSE\d{5,})',
             
@@ -274,10 +280,65 @@ if (1)
             
             'up'        => 'UP\d{9}', // https://www.uniprot.org/proteomes/UP000006548,
             
+            'uniprot'   => '([A-N,R-Z][0-9]([A-Z][A-Z, 0-9][A-Z, 0-9][0-9]){1,2})|([O,P,Q][0-9][A-Z, 0-9][A-Z, 0-9][A-Z, 0-9][0-9])(\.\d+)?\b',
+    
+            
             'doi'		=> 'https',
         );     
 
+	// get list of article ids we have data for
+	
+	// default, everything
+	$scored = [];
+	foreach ($gold as $article => $data)
+	{
+		$scored[] = $article;
+	}
 
+	// filter for docs with no XML
+	$scored = [];
+	foreach ($gold as $article => $data)
+	{
+		$filename = get_xml_filename($article);
+		
+		if (file_exists($filename ))
+		{		
+			$scored[] = $article;
+		}
+	}
+	
+	
+	if (1)
+	{
+		// could just look at things we scored (ignores complete misses)
+		$scored = array_keys($model);
+	}
+	
+	
+	
+	if (0)
+	{
+		// could just look at things we scored (ignores complete misses)
+		$scored = array_keys($model);
+		
+		// score by type
+		$scored = [];
+		$type = 'tei';
+		//$type = 'wiley';
+		$type = 'jats';
+		//$type = 'bioc';
+		
+		foreach ($gold as $article => $data)
+		{
+			if (xml_type($article) == $type)
+			{
+				$scored[] = $article;
+			}
+		}
+		
+		print_r($scored);
+	}
+	
 
 
 	$mode = 0; // just include dataset id
@@ -288,16 +349,19 @@ if (1)
 	
 	foreach ($gold as $article => $data)
 	{
-		foreach ($data as $id => $type)
+		if (in_array($article, $scored))
 		{
-			$row = [$article, $id];
-			
-			if ($mode == 1)
+			foreach ($data as $id => $type)
 			{
-				$row[] = $type;
+				$row = [$article, $id];
+				
+				if ($mode == 1)
+				{
+					$row[] = $type;
+				}
+				
+				$g[] = join("|", $row);
 			}
-			
-			$g[] = join("|", $row);
 		}
 	}
 	
@@ -319,7 +383,7 @@ if (1)
 	
 	
 	
-	// print_r($g);
+	//print_r($g);
 	//print_r($m);
 	
 	$tpset = array_intersect($g, $m);
@@ -473,7 +537,7 @@ if (0)
 	print_r($tpset);
 }
 
-if (0)
+if (1)
 {
 	echo "False positives, you said there is a citation when there isn't\n";
 	print_r($fpset);
@@ -514,9 +578,9 @@ if (1)
 		$f1 = 2 * ($precision * $recall) / ($precision + $recall);
 	}
 	
-	echo "Precision = $precision\n";
-	echo "Recall = $recall\n";
-	echo "Score = $f1\n";
+	echo "Precision = " . round($precision,3) . "\n";
+	echo "   Recall = " . round($recall,3) . "\n";
+	echo "       F1 = " . round($f1,3) . "\n";
 }
 
 if (0)

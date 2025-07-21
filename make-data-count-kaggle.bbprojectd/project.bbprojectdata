@@ -25,6 +25,7 @@
 		<string>BC99B402-12AE-4AD0-9DE8-037800AE9B15</string>
 		<string>FD628E2F-BD17-4B18-9F7B-CDC6822C299E</string>
 		<string>5277F140-525E-40DD-ACC3-A457DAB66C8B</string>
+		<string>74F17FA4-B69D-46A6-A454-8B0F2F91DA3D</string>
 	</array>
 	<key>ProjectItems</key>
 	<dict>
@@ -343,11 +344,11 @@
 				BAAAAAAAAADsAQCAEAIAAAAAAAA=
 				</data>
 				<key>FileURL</key>
-				<string>file:///Users/rpage/Development/make-data-count-kaggle/xtoj.py</string>
+				<string>file:///Users/rpage/Development/make-data-count-kaggle/junk/xtoj.py</string>
 				<key>HasSecurityScope</key>
 				<true/>
 				<key>RelativePath</key>
-				<string>./xtoj.py</string>
+				<string>./junk/xtoj.py</string>
 				<key>TypeID</key>
 				<string>_CFileLocator</string>
 				<key>Version</key>
@@ -405,6 +406,52 @@
 			<string>README.md</string>
 			<key>ItemType</key>
 			<string>FileReference</string>
+		</dict>
+		<key>74F17FA4-B69D-46A6-A454-8B0F2F91DA3D</key>
+		<dict>
+			<key>ItemData</key>
+			<dict>
+				<key>BookmarkData</key>
+				<data>
+				Ym9va+wCAAAAAAQQMAAAAPS4qJ4gG50+FzV9T4WH7ykX
+				NT4hH8IPnTwtnLX3/IzV6AEAAAQAAAADAwAAAAgAKAUA
+				AAABAQAAVXNlcnMAAAAFAAAAAQEAAHJwYWdlAAAACwAA
+				AAEBAABEZXZlbG9wbWVudAAWAAAAAQEAAG1ha2UtZGF0
+				YS1jb3VudC1rYWdnbGUAAAMAAAABAQAAdGVpABQAAAAB
+				BgAAEAAAACAAAAAwAAAARAAAAGQAAAAIAAAABAMAAIRc
+				AAAAAAAACAAAAAQDAACWxgMAAAAAAAgAAAAEAwAAWSkl
+				AAAAAAAIAAAABAMAACOmy0YAAAAACAAAAAQDAADg2uFI
+				AAAAABQAAAABBgAAjAAAAJwAAACsAAAAvAAAAMwAAAAI
+				AAAAAAQAAEHHFJIgSpCKGAAAAAECAAACAAAAAAAAAA8A
+				AAAAAAAAAAAAAAAAAAAIAAAABAMAAAMAAAAAAAAABAAA
+				AAMDAAD1AQAACAAAAAEJAABmaWxlOi8vLwwAAAABAQAA
+				TWFjaW50b3NoIEhECAAAAAQDAAAAkIKW5wAAAAgAAAAA
+				BAAAQcZ3ntqAAAAkAAAAAQEAAEVFREJDNDk1LURGNTIt
+				NDU2QS1CNDMxLUZCNjA3QkYwNEFEMRgAAAABAgAAgQAA
+				AAEAAADvEwAAAQAAAAAAAAAAAAAAAQAAAAEBAAAvAAAA
+				AAAAAAEFAADMAAAA/v///wEAAAAAAAAAEAAAAAQQAABw
+				AAAAAAAAAAUQAADcAAAAAAAAABAQAAAIAQAAAAAAAEAQ
+				AAD4AAAAAAAAAAIgAADUAQAAAAAAAAUgAABEAQAAAAAA
+				ABAgAABUAQAAAAAAABEgAACIAQAAAAAAABIgAABoAQAA
+				AAAAABMgAAB4AQAAAAAAACAgAAC0AQAAAAAAADAgAADg
+				AQAAAAAAAAHAAAAoAQAAAAAAABHAAAAgAAAAAAAAABLA
+				AAA4AQAAAAAAABDQAAAEAAAAAAAAAA==
+				</data>
+				<key>FileURL</key>
+				<string>file:///Users/rpage/Development/make-data-count-kaggle/tei/</string>
+				<key>HasSecurityScope</key>
+				<true/>
+				<key>RelativePath</key>
+				<string>./tei</string>
+				<key>TypeID</key>
+				<string>_CFileLocator</string>
+				<key>Version</key>
+				<integer>1</integer>
+			</dict>
+			<key>ItemName</key>
+			<string>tei</string>
+			<key>ItemType</key>
+			<string>FolderReference</string>
 		</dict>
 		<key>75F55B7D-1B6C-4150-B507-C40857BCC2B8</key>
 		<dict>

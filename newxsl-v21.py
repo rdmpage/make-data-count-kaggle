@@ -6,7 +6,6 @@ import sys
 from lxml import etree
 import xmltodict
 import pprint
-import uuid
 
 # Define input and output directories
 if os.getenv('KAGGLE_KERNEL_RUN_TYPE'):
@@ -38,10 +37,10 @@ else:
     json_folder = 'jatsjson'
     
     xml_folder = 'xslxml'
-    json_folder = 'xsltestjson'
+    json_folder = 'xsljson'
     
-    #xml_folder = 'train/XML'
-    #json_folder = 'xsljson'
+    xml_folder = 'train/XML'
+    json_folder = 'xsljson'
    
     xsl_folder = 'article-xslt'
     
@@ -321,7 +320,7 @@ def find_datasets(id, text, section_type):
         'pfam'        : r'(PF\d{5}(.\d{1,2})?)', # PFAM seems to have versions, e.g. PF01493.23)   
         'prjna'       : r'PRJ[DEN][A-Z]\d+', # https://registry.identifiers.org/registry/bioproject
         'pxd'         : r'PXD\d{6}', # https://www.proteomexchange.org    
-        'sra'         : r'((SRA:)?[SED]R[APRSXZ]\d+)', # https://registry.identifiers.org/registry/insdc.sra
+        'sra'         : r'[SED]R[APRSXZ]\d+', # https://registry.identifiers.org/registry/insdc.sra
         'up'          : r'UP\d{9}', # https://www.uniprot.org/proteomes/UP000006548
 
         #'uniprot'     : r'\b([A-N,R-Z][0-9]([A-Z][A-Z, 0-9][A-Z, 0-9][0-9]){1,2})|([O,P,Q][0-9][A-Z, 0-9][A-Z, 0-9][A-Z, 0-9][0-9])(\.\d+)?\b', # https://registry.identifiers.org/registry/uniprot
@@ -342,9 +341,6 @@ def find_datasets(id, text, section_type):
                         annot['value'] = remove_namespace(annot['value'])
  
                     case 'pdb':
-                        annot['value'] = remove_namespace(annot['value'])
-
-                    case 'sra':
                         annot['value'] = remove_namespace(annot['value'])
 
                     #case :_                
@@ -421,29 +417,6 @@ def is_primary_doi(doi):
             
     return False
     
-#-----------------------------------------------------------------------------------------
-def short_uuid_hex(length=8):
-    return uuid.uuid4().hex[:length]
-    
-#-----------------------------------------------------------------------------------------
-# get "context" which is a list of ids of blocks of text that mention a database
-def get_context(id, text):
-    database_patterns = {
-        'dbsnp'     : r'\bSNPs?\b',
-        'genbank'   : r'(Genbank|European Nucleotide Archive|NCBI)',
-        'hpa'       : r'Human Protein Atlas',
-        'pdb'       : r'(Protein Data Bank|PDB)',
-        'pfam'      : r'(Pfam)',
-        'prjna'     : r'(Bio[P|p]roject|raw reads|Sequence Read Archive|SRA)',
-        'sra'       : r'(raw reads|Sequence Read Archive|SRA)',
-        'uniprot'   : r'Uni[P|p]rot',
-    }
-            
-    for source, pattern in database_patterns.items():
-        if re.search(pattern, text):
-            if source not in context:
-                context[source] = []
-            context[source].append(id)
 
 #-----------------------------------------------------------------------------------------
 # Recursively traverse document tree, keeping track of section type
@@ -459,8 +432,6 @@ def traverse_document(node, current_type=None):
         id = 'Unknown'
         if '@id' in node:
             id = node['@id']
-        else:
-            id = short_uuid_hex()
             
         text = ''
         if '#text' in node:
@@ -480,10 +451,9 @@ def traverse_document(node, current_type=None):
 
                    #print(f"[{current_type}] [id: {id}] {text}")            
 
-        if text != '':        
+        if text != '':
+        
             #print(f"[{current_type}] [id: {id}] {text}")
-            
-            get_context(id, text)
             
             # look for identifiers
             find_dois(id, text, current_type)
@@ -542,9 +512,6 @@ for filename in sorted(os.listdir(json_folder)):
             
         # starting point for document traversal
         article = doc['html']['body']['article']
-        
-        # initialise map between database names and text block ids
-        context = {}
         
         # traverse document
         traverse_document(article)                     

@@ -6,7 +6,6 @@ import sys
 from lxml import etree
 import xmltodict
 import pprint
-import uuid
 
 # Define input and output directories
 if os.getenv('KAGGLE_KERNEL_RUN_TYPE'):
@@ -38,10 +37,10 @@ else:
     json_folder = 'jatsjson'
     
     xml_folder = 'xslxml'
-    json_folder = 'xsltestjson'
+    json_folder = 'xsljson'
     
-    #xml_folder = 'train/XML'
-    #json_folder = 'xsljson'
+    xml_folder = 'train/XML'
+    json_folder = 'xsljson'
    
     xsl_folder = 'article-xslt'
     
@@ -259,9 +258,6 @@ def value_ignore(value):
    
    if value == 'ERA5':
        ignore = True
-
-   if value == 'ERS1':
-       ignore = True
    
    return ignore
     
@@ -295,7 +291,6 @@ def find_datasets(id, text, section_type):
         'arxe'        : r'E-GEOD-\d+', # https://www.ebi.ac.uk/biostudies/arrayexpress
         'arxm'        : r'E-MTAB-\d+', # https://www.ebi.ac.uk/biostudies/arrayexpress
         'arxp'        : r'E-PROT-\d+', # https://www.ebi.ac.uk/biostudies/arrayexpress
-        'biomodel'    : r'((BIOMD|MODEL)\d{10})|(BMID\d{12})', # https://registry.identifiers.org/registry/biomodels.db
         'biosample'   : r'SAM[NED]\w?\d+', # https://registry.identifiers.org/registry/biosample
         'cellosaurus' : r'(CVCL_[0-9A-Z][0-9A-Z]\d{2})',
         'chembl'      : r'CHEMBL\d+',
@@ -314,14 +309,13 @@ def find_datasets(id, text, section_type):
         'genbank'    : r'\b(A[B-HJ-MPUX-Y]|B[AC-DS-TVX]|C[HMPR-UY]|D[DF-GP-QS]|E[FM-NP-QUZ]|F[JM-RX]|G[F-GLQU]|H[E-GMP-Q]|J[FH-ILN-RT-X]|K[A-FI-NP-RT-VX-Z]|L[AC-EH-KM-NRT]|M[F-HK-LNT-UWZ]|O[DK-NP-RU-VX-Z]|P[P-Q])\d{6}(\.\d+)?\b',
         
         'insdcgca'    : r'(GCA_[0-9]{9}(\.[0-9]+)?)', # insdc.gca
-        'interpro'    : r'IPR\d{6}', 
-        'massive'     : r'MSV\d{9}', # MassIVE https://registry.identifiers.org/registry/massive                   
+        'interpro'    : r'IPR\d{6}',                     
         'nm'          : r'(N[CM]_?\d{6}(\.[0-9]+)?)', # added ? after _ because eLife sometimes misses the underscore. https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/?report=objectonly
         #'pdb'         : r'\b((PDB(\s*ID)?:?\s*)?[0-9][A-Za-z][A-Za-z0-9]{2})\b', # PDB, likely lots of false hits unless we include prefix        
         'pfam'        : r'(PF\d{5}(.\d{1,2})?)', # PFAM seems to have versions, e.g. PF01493.23)   
         'prjna'       : r'PRJ[DEN][A-Z]\d+', # https://registry.identifiers.org/registry/bioproject
         'pxd'         : r'PXD\d{6}', # https://www.proteomexchange.org    
-        'sra'         : r'((SRA:)?[SED]R[APRSXZ]\d+)', # https://registry.identifiers.org/registry/insdc.sra
+        'sra'         : r'[SED]R[APRSXZ]\d+', # https://registry.identifiers.org/registry/insdc.sra
         'up'          : r'UP\d{9}', # https://www.uniprot.org/proteomes/UP000006548
 
         #'uniprot'     : r'\b([A-N,R-Z][0-9]([A-Z][A-Z, 0-9][A-Z, 0-9][0-9]){1,2})|([O,P,Q][0-9][A-Z, 0-9][A-Z, 0-9][A-Z, 0-9][0-9])(\.\d+)?\b', # https://registry.identifiers.org/registry/uniprot
@@ -342,9 +336,6 @@ def find_datasets(id, text, section_type):
                         annot['value'] = remove_namespace(annot['value'])
  
                     case 'pdb':
-                        annot['value'] = remove_namespace(annot['value'])
-
-                    case 'sra':
                         annot['value'] = remove_namespace(annot['value'])
 
                     #case :_                
@@ -421,29 +412,6 @@ def is_primary_doi(doi):
             
     return False
     
-#-----------------------------------------------------------------------------------------
-def short_uuid_hex(length=8):
-    return uuid.uuid4().hex[:length]
-    
-#-----------------------------------------------------------------------------------------
-# get "context" which is a list of ids of blocks of text that mention a database
-def get_context(id, text):
-    database_patterns = {
-        'dbsnp'     : r'\bSNPs?\b',
-        'genbank'   : r'(Genbank|European Nucleotide Archive|NCBI)',
-        'hpa'       : r'Human Protein Atlas',
-        'pdb'       : r'(Protein Data Bank|PDB)',
-        'pfam'      : r'(Pfam)',
-        'prjna'     : r'(Bio[P|p]roject|raw reads|Sequence Read Archive|SRA)',
-        'sra'       : r'(raw reads|Sequence Read Archive|SRA)',
-        'uniprot'   : r'Uni[P|p]rot',
-    }
-            
-    for source, pattern in database_patterns.items():
-        if re.search(pattern, text):
-            if source not in context:
-                context[source] = []
-            context[source].append(id)
 
 #-----------------------------------------------------------------------------------------
 # Recursively traverse document tree, keeping track of section type
@@ -459,8 +427,6 @@ def traverse_document(node, current_type=None):
         id = 'Unknown'
         if '@id' in node:
             id = node['@id']
-        else:
-            id = short_uuid_hex()
             
         text = ''
         if '#text' in node:
@@ -480,10 +446,9 @@ def traverse_document(node, current_type=None):
 
                    #print(f"[{current_type}] [id: {id}] {text}")            
 
-        if text != '':        
+        if text != '':
+        
             #print(f"[{current_type}] [id: {id}] {text}")
-            
-            get_context(id, text)
             
             # look for identifiers
             find_dois(id, text, current_type)
@@ -531,7 +496,7 @@ for filename in sorted(os.listdir(json_folder)):
     
         annotations = {}
     
-        print ("\n", filename)
+        print (filename)
         
         article_id = filename.replace('.json', '')
         
@@ -542,9 +507,6 @@ for filename in sorted(os.listdir(json_folder)):
             
         # starting point for document traversal
         article = doc['html']['body']['article']
-        
-        # initialise map between database names and text block ids
-        context = {}
         
         # traverse document
         traverse_document(article)                     
@@ -570,10 +532,9 @@ for filename in sorted(os.listdir(json_folder)):
                 if annot['type'] =='dbsnp':
                     ok = annot['section_type'] != 'References'
                     
-                # Don't include things in Acknowledgements which aren't DOIs as they are likely to be grants
+                # Don't include things in Acknowledgements as they are likely to be grants
                 if ok:
-                    if annot['type'] != 'doi':
-                        ok = annot['section_type'] != 'Acknowledgements'
+                     ok = annot['section_type'] != 'Acknowledgements'
                  
                 if ok:
                     # classify by type
@@ -586,27 +547,24 @@ for filename in sorted(os.listdir(json_folder)):
                         
                            if is_primary_doi(citation):
                                 citation_type = 'Primary'
-                           #elif annot['section_type'] and annot['section_type'] != 'References':
-                           elif annot['section_type'] and not annot['section_type'] in ['Acknowledgements', 'Methods','References']:
+                           elif annot['section_type'] and annot['section_type'] != 'References':
                                citation_type = 'Primary'
                                
                            # debugging
-                           #if not annot['section_type']:
                            #print (annot['section_type'],  " | ", annot['prefix'], " | ", citation, " | ", annot['suffix'], " | ", citation_type)
 
-#                        case 'biosample':
-#                           citation_type = 'Primary'
-#                           #print (annot['section_type'],  " | ", annot['prefix'], " | ", citation, " | ", annot['suffix'], " | ", citation_type)
-#
-#
-#                        case 'prjna':
-#                            citation_type = 'Primary'
-#
-#                        case 'sra':
-#                            citation_type = 'Primary'
-#
+                        case 'biosample':
+                           citation_type = 'Primary'
+                           #print (annot['section_type'],  " | ", annot['prefix'], " | ", citation, " | ", annot['suffix'], " | ", citation_type)
+
+
+                        case 'prjna':
+                            citation_type = 'Primary'
+
+                        case 'sra':
+                            citation_type = 'Primary'
+
                         case _:
-                        	 # including Results is slighgtly worse locally
                              citation_type = 'Secondary' 
                              if annot['section_type'] in ['DatasetDescription', 'SupplementaryInformationDescription']:
                                  citation_type = 'Primary'

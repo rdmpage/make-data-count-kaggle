@@ -8,6 +8,21 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
 <!-- ensure that elements that we don't explicitly match are spaced (e.g., in references) -->
 <xsl:preserve-space elements="*"/>
 
+<!--
+
+we sometimes have (e.g. 10.1242_dev.138545 where headings aren't semantic)
+
+      <fn>
+        <p>
+          <bold>Data availability</bold>
+        </p>
+        <p>Microarray expression data are available from the Dryad Digital Repository at 
+        <uri xlink:href="http://dx.doi.org/10.5061/dryad.fj0qj">http://dx.doi.org/10.5061/dryad.fj0qj</uri>(
+        <xref rid="DEV138545C67" ref-type="bibr">Miyazawa et al., 2016</xref>).</p>
+      </fn>
+
+-->
+
 <xsl:template match="/">
        <html>
             <head>
@@ -58,6 +73,7 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
 
 	<!-- eat for now -->
     <xsl:template match="front">
+    	 <xsl:apply-templates select="notes"/>
     </xsl:template>
 
     <xsl:template match="body">
@@ -76,72 +92,134 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
     
     <xsl:template match="sec">
     	<section id="{generate-id()}">
+    		<!--
         	<xsl:attribute name="id">
         		<xsl:value-of select="@id" />
         	</xsl:attribute>
+        	-->
         	
         	<xsl:choose>
         		<!-- do we have asec-type attribute? -->
         		<xsl:when test="@sec-type">
-					<type>
+					
 					<xsl:choose>   		
-						
-						 <xsl:when test="@sec-type='supplementary-material'">
-							<xsl:text>SupplementaryInformationDescription</xsl:text>
+
+						 <xsl:when test="@sec-type='intro'">
+							<type><xsl:text>Introduction</xsl:text></type>  
+						 </xsl:when>
+
+						 <xsl:when test="@sec-type='materials|methods'">
+							<type><xsl:text>Methods</xsl:text></type>  
+						 </xsl:when>
+
+						 <xsl:when test="@sec-type='methods'">
+							<type><xsl:text>Methods</xsl:text></type>  
+						 </xsl:when>
+
+						 <xsl:when test="@sec-type='discussion'">
+							<type><xsl:text>Discussion</xsl:text></type>  
+						 </xsl:when>
+	
+						 <xsl:when test="@sec-type='discussion|interpretation'">
+							<type><xsl:text>Discussion</xsl:text></type>  
+						 </xsl:when>
+
+						 <xsl:when test="@sec-type='results'">
+							<type><xsl:text>Results</xsl:text></type>  
 						 </xsl:when>
 						 
+						 <xsl:when test="@sec-type='conclusions'">
+							<type><xsl:text>Conclusions</xsl:text></type>  
+						 </xsl:when>						 
+						
+						 <xsl:when test="@sec-type='supplementary-material'">
+							<type><xsl:text>SupplementaryInformationDescription</xsl:text></type>  
+						 </xsl:when>
+						 
+						 <xsl:when test="@sec-type='datasets'">
+							<type><xsl:text>DatasetDescription</xsl:text></type>  
+						 </xsl:when>						 
+
+						 <xsl:when test="@sec-type='data-availability'">
+							<type><xsl:text>DatasetDescription</xsl:text></type>  
+						 </xsl:when>						 
+						 
 						 <xsl:otherwise>
+						 	<type><xsl:value-of select="@sec-type" /></type>
 						 </xsl:otherwise>
 					</xsl:choose> 
-					</type>  		        		
+					 		        		
         		</xsl:when>
         		<xsl:otherwise>
 					<!-- try to type based on title -->
-					
 					<xsl:if test="title">
-						<type>
 						<xsl:choose>   			
 							 <xsl:when test="title='Acknowledgements'">
-								<xsl:text>Acknowledgements</xsl:text>
+								<type><xsl:text>Acknowledgements</xsl:text></type> 
 							 </xsl:when>
 
 							 <xsl:when test="title='Availability of data and materials'">
-								<xsl:text>DatasetDescription</xsl:text>
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="title='OPEN RESEARCH BADGES'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
 							 </xsl:when>
 
 							 <xsl:when test="title='Background'">
-								<xsl:text>Background</xsl:text>
+								<type><xsl:text>Background</xsl:text></type> 
 							 </xsl:when>
 
 							 <xsl:when test="title='Competing interests'">
-								<xsl:text>ConflictOfInterest</xsl:text>
+								<type><xsl:text>ConflictOfInterest</xsl:text></type> 
+							 </xsl:when>		 
+	
+							 <xsl:when test="title='Conclusion'">
+								<type><xsl:text>Conclusion</xsl:text></type> 
 							 </xsl:when>
-		 
-							 <xsl:when test="title='Conclusions'">
-								<xsl:text>Conclusion</xsl:text>
+ 	
+ 							 <xsl:when test="title='Conclusions'">
+								<type><xsl:text>Conclusion</xsl:text></type> 
 							 </xsl:when>
-		
+							 
+							 <xsl:when test="title='Databases'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="title='Data availability'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="title='Data Availability'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="title='DATA AVAILABILITY STATEMENT'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
+							 		
 							 <xsl:when test="title='Discussion'">
-								<xsl:text>Discussion</xsl:text>
+								<type><xsl:text>Discussion</xsl:text></type> 
+							 </xsl:when>
+							 
+							 <xsl:when test="title='Materials and Methods'">
+								<type><xsl:text>Methods</xsl:text></type> 
 							 </xsl:when>
 		
 							 <xsl:when test="title='Methods'">
-								<xsl:text>Methods</xsl:text>
+								<type><xsl:text>Methods</xsl:text></type> 
 							 </xsl:when>
 		
 							 <xsl:when test="title='Results'">
-								<xsl:text>Results</xsl:text>
+								<type><xsl:text>Results</xsl:text></type> 
 							 </xsl:when>
-							 
+						 
 							 <xsl:otherwise>
-							 		<!-- 
-									<xsl:value-of select="title" />
-									-->
+							 	<!-- <type><xsl:value-of select="title" /></type> -->
 							 </xsl:otherwise>
 							 
 						</xsl:choose>
 					
-						</type>						
 					</xsl:if>
 				
 				</xsl:otherwise>
@@ -166,15 +244,16 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
 	</xsl:template>	
 	
 	<!-- table -->
-    <xsl:template match="table"><table cellspacing="0" cellpadding="2"><xsl:apply-templates /></table></xsl:template>
+    <xsl:template match="table"><table  id="{generate-id()}" cellspacing="0" cellpadding="2"><xsl:apply-templates /></table></xsl:template>
     <xsl:template match="tr"><tr><xsl:apply-templates /></tr></xsl:template>
     <xsl:template match="th"><th><xsl:apply-templates /></th></xsl:template>
-    <xsl:template match="td"><td><xsl:apply-templates /></td></xsl:template>
+    <xsl:template match="td"><td id="{generate-id()}"><xsl:apply-templates /></td></xsl:template> 
     
     <!-- figure -->
     <xsl:template match="fig">
     	<figure>
-			<figcaption>	 	
+			<figcaption>	 
+				<type>Caption</type>	
     			<xsl:apply-templates />
     		</figcaption>	
     	</figure>
@@ -320,6 +399,57 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
     <xsl:template match="notes"> 
     	<section id="{generate-id()}">
     		<b>Notes</b> 
+    		
+        	<xsl:choose>
+        		<!-- do we have a content-type attribute? -->
+        		<xsl:when test="@notes-type">
+					
+					<xsl:choose>   		
+
+						 <xsl:when test="@notes-type='author-contributions'">
+							<type><xsl:text>AuthorContribution</xsl:text></type>  
+						 </xsl:when>
+
+						 <xsl:when test="@notes-type='COI-statement'">
+							<type><xsl:text>ConflictOfInterest</xsl:text></type>  
+						 </xsl:when>
+
+						 <xsl:when test="@notes-type='funding-information'">
+							<type><xsl:text>Acknowledgements</xsl:text></type>  
+						 </xsl:when>
+						 
+						 <xsl:when test="@notes-type='data-availability'">
+							<type><xsl:text>DatasetDescription</xsl:text></type> 						
+						 </xsl:when>
+						 
+						<xsl:otherwise>
+						</xsl:otherwise>
+						 
+					</xsl:choose>  
+				</xsl:when>
+				<xsl:otherwise>
+					<!-- try to type based on title -->
+					<xsl:if test="title">
+						<xsl:choose>   			
+
+							 <xsl:when test="title='Data Availability'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
+
+							 <xsl:when test="title='Data availability'">
+								<type><xsl:text>DatasetDescription</xsl:text></type> 
+							 </xsl:when>
+						 
+							 <xsl:otherwise>
+							 	<!-- <type><xsl:value-of select="title" /></type> -->
+							 </xsl:otherwise>
+							 
+						</xsl:choose>
+					
+					</xsl:if>
+				</xsl:otherwise>
+			</xsl:choose>
+    		
     		 
     		<xsl:apply-templates />  
     	</section>
@@ -327,9 +457,46 @@ xmlns:xsl='http://www.w3.org/1999/XSL/Transform' xmlns:xlink='http://www.w3.org/
 
     <xsl:template match="fn-group"> 
     	<section id="{generate-id()}">
+
+        	<xsl:choose>
+        		<!-- do we have a content-type attribute? -->
+        		<xsl:when test="@content-type">
+					
+					<xsl:choose>   		
+
+						 <xsl:when test="@content-type='author-contributions'">
+							<type><xsl:text>AuthorContribution</xsl:text></type>  
+						 </xsl:when>
+
+						 <xsl:when test="@content-type='competing-interests'">
+							<type><xsl:text>ConflictOfInterest</xsl:text></type>  
+						 </xsl:when>
+						 
+						 <xsl:when test="@content-type='other'">
+							<type><xsl:text>DatasetDescription</xsl:text></type> 						
+						 </xsl:when>
+						 
+						<xsl:otherwise>
+						</xsl:otherwise>
+						 
+					</xsl:choose>  
+				</xsl:when>
+				<xsl:otherwise>
+				</xsl:otherwise>
+			</xsl:choose>
+    	
+    	
      		<xsl:apply-templates />  
     	</section>
     </xsl:template> 
+    
+    <xsl:template match="supplementary-material"> 
+    	<section id="{generate-id()}">
+    		<type><xsl:text>SupplementaryInformationDescription</xsl:text></type>  
+    		<xsl:apply-templates />  
+    	</section>
+    </xsl:template> 
+    
     
 
 
